@@ -1,0 +1,14 @@
+org: process.env.ORG
+app: process.env.APP
+service: process.env.SERVICE
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: '*'
