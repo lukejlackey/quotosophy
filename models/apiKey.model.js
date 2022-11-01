@@ -4,8 +4,8 @@ class APIKey extends Entity {}
 export const apiKeySchema = new Schema(
     APIKey,
     {
-        apiKey: {type: 'string'},
-        customerId: {type: 'number'},
+        apiKey: {type: 'string', textSearch: true},
+        customerId: {type: 'string'},
     },
     {
         dataStructure: 'JSON',

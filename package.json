@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
+    "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
     "redis-om": "^0.3.6",

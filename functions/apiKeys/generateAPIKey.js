@@ -1,9 +1,14 @@
-export default function generateAPIKey() {
-    const { randomBytes } = require('crypto');
-    const { hashAPIKey } = require('./hashAPIKey');
+const { findAPIKey } = require("../../controllers/apiKey.controller")
+const { randomBytes } = require('crypto');
+const { hash } = require('../general/hash');
 
+export default function generateAPIKey() {
     const apiKey = randomBytes(22).toString('hex');
-    const hashAPIKey = hashAPIKey(apiKey);
+    const hashedAPIKey = hash(apiKey);
     
-    return { hashAPIKey, apiKey };
+    if (findAPIKey(hashedAPIKey)) {
+        return generateAPIKey();
+    };
+
+    return { hashedAPIKey, apiKey };
 }

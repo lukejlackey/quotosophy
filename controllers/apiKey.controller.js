@@ -1,17 +1,23 @@
 import { Repository } from "redis-om";
-import generateAPIKey from "../functions/apiKeys/generateAPIKey";
 import { apiKeySchema } from "../models/apiKey.model";
 const { redisClient, connect } = require("../config/redis.config")
 
-export default async function createAPIKey(customerID) {
+async function createIndex() {
+    await connect();
+
+    const repo = new Repository(apiKeySchema, redisClient);
+    await repo.createIndex();
+}
+
+createIndex();
+
+export async function createAPIKey(customerID, apiKey) {
     await connect();
 
     const repo = new Repository(apiKeySchema, redisClient);
 
-    //TODO: Prevent duplicate key generation
-
     const data = {
-        apiKey: generateAPIKey(),
+        apiKey,
         customerID,
     }
 
@@ -21,3 +27,15 @@ export default async function createAPIKey(customerID) {
 
     return id;
 }
+
+export async function findAPIKey(apiKey) {
+    await connect();
+
+    const repo = new Repository(apiKeySchema, redisClient);
+
+    const apiKey = await repo.search()
+        .where('apiKey').eq(apiKey).return.first();
+    
+    return apiKey;
+}
+

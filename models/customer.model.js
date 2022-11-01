@@ -4,9 +4,10 @@ class Customer extends Entity {}
 export const customerSchema = new Schema(
     Customer,
     {
+        stripeCustomerId: {type: 'string'},
+        apiKey: {type: 'string'},
         active: {type: 'boolean'},
         itemId: {type: 'string'},
-        calls: {type: 'number'},
     },
     {
         dataStructure: 'JSON',
