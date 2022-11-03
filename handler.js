@@ -38,7 +38,7 @@ app.get("/", async (req, res) => {
       const quotes = []
       res.status(200).send({data: quotes, usage: record});
     };
-  });
+});
 
   app.post("/checkout", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
@@ -141,5 +141,4 @@ app.use((req, res) => {
   });
 });
 
-  module.exports.handler = serverless(app);
-  
+module.exports.handler = serverless(app);

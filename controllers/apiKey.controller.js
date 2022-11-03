@@ -1,20 +1,20 @@
 import { Repository } from "redis-om";
 import { apiKeySchema } from "../models/apiKey.model";
-const { redisClient, connect } = require("../config/redis.config")
+const { redisClient, connection} = require("../config/redis.config")
 
 async function createIndex() {
-    await connect();
-
-    const repo = new Repository(apiKeySchema, redisClient);
+    await connection.connect();
+    const client = redisClient;
+    const repo = new Repository(apiKeySchema, client);
     await repo.createIndex();
 }
 
 createIndex();
 
 export async function createAPIKey(customerID, apiKey) {
-    await connect();
-
-    const repo = new Repository(apiKeySchema, redisClient);
+    await connection.connect();
+    const client = redisClient;
+    const repo = new Repository(apiKeySchema, client);
 
     const data = {
         apiKey,
@@ -29,9 +29,9 @@ export async function createAPIKey(customerID, apiKey) {
 }
 
 export async function findAPIKey(apiKey) {
-    await connect();
-
-    const repo = new Repository(apiKeySchema, redisClient);
+    await connection.connect();
+    const client = redisClient;
+    const repo = new Repository(apiKeySchema, client);
 
     const apiKey = await repo.search()
         .where('apiKey').eq(apiKey).return.first();
