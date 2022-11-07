@@ -1,4 +1,4 @@
-const { Entity, Schema } = require("redis-om")
+import { Entity, Schema } from "redis-om";
 
 class Customer extends Entity {}
 export const customerSchema = new Schema(

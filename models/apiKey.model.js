@@ -1,4 +1,4 @@
-const { Entity, Schema } = require("redis-om")
+import { Entity, Schema } from "redis-om";
 
 class APIKey extends Entity {}
 export const apiKeySchema = new Schema(

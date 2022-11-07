@@ -1,27 +1,26 @@
-import { Repository } from "redis-om";
-import { customerSchema } from "../models/customer.model";
-const { redisClient, connection } = require("../config/redis.config")
+import { customerSchema } from "../models/customer.model.js";
+import { default as redisClient } from "../config/redis.config.js";
 
 async function createIndex() {
-    await connection.connect();
     const client = redisClient;
-    const repo = new Repository(customerSchema, client);
+    await redisClient.open()
+    const repo = client.fetchRepository(customerSchema);
     await repo.createIndex();
 }
 
 export async function createCustomer(data) {
-    await connection.connect();
     const client = redisClient;
-    const repo = new Repository(customerSchema, client);
+    await redisClient.open()
+    const repo = client.fetchRepository(customerSchema);
     const newCustomer = repo.createEntity(data);
     const id = await repo.save(newCustomer);
     return id;
 };
 
 export async function findCustomerById(customerId) {
-    await connection.connect();
     const client = redisClient;
-    const repo = new Repository(customerSchema, client);
+    await redisClient.open()
+    const repo = client.fetchRepository(customerSchema);
     const customer = await repo.fetch(customerId);
     return customer;
 };

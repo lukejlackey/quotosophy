@@ -2,6 +2,7 @@
   "name": "quotosophy2",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "dependencies": {
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
@@ -9,5 +10,8 @@
     "redis-om": "^0.3.6",
     "serverless-http": "^2.7.0",
     "stripe": "^10.15.0"
+  },
+  "devDependencies": {
+    "serverless-offline": "^11.2.3"
   }
 }

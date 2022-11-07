@@ -1,26 +1,35 @@
-require('dotenv').config();
-const serverless = require("serverless-http");
-const express = require("express");
-const stripe = require("stripe")(process.env.STRIPE_SK);
-const { generateAPIKey } = require("./functions/apiKeys/generateAPIKey");
-const { hashAPIKey } = require("./functions/general/hash");
-const { createCustomer, findCustomerById } = require("./controllers/customer.controller");
-const { createAPIKey, findAPIKey } = require("./controllers/apiKey.controller");
+import { config } from 'dotenv';
+config();
+import serverless from "serverless-http";
+import express, { json } from "express";
+import Stripe from 'stripe';
+import { default as generateAPIKey } from "./functions/apiKeys/generateAPIKey.js";
+import { default as hash } from "./functions/general/hash.js";
+import { createCustomer, findCustomerById } from "./controllers/customer.controller.js";
+import { createAPIKey, findAPIKey } from "./controllers/apiKey.controller.js";
+
+const stripe = new Stripe(process.env.STRIPE_SK);
 
 const app = express();
 
 app.use(
-  express.json({
+  json({
     verify: (req, res, buffer) => (req['rawBody'] = buffer),
   })
 );
 
+app.get("/test", async (req, res) => {
+  const customerId = findAPIKey("fJeiBDTzGN2pRejaITaJj6WcEJs");
+  const customer = findCustomerById(customerId);
+  res.send({data: {customerId, customer}});
+});
+
 app.get("/", async (req, res) => {
-  const apiKey = req.headers['X-API-KEY'];
+  let apiKey = req.headers['X-API-KEY'];
   if (!apiKey) {
     res.sendStatus(400);
   };
-  const hashedAPIKey = hashAPIKey(apiKey);
+  const hashedAPIKey = hash(apiKey);
   const customerId = findAPIKey(hashedAPIKey);
   const customer = findCustomerById(customerId);
   if (!customer || !customer.active) {
@@ -40,7 +49,7 @@ app.get("/", async (req, res) => {
     };
 });
 
-  app.post("/checkout", async (req, res) => {
+app.post("/checkout", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     payment_method_types: ['card'],
@@ -52,15 +61,13 @@ app.get("/", async (req, res) => {
     success_url: `${process.env.PUBLIC_IP}/success?session_id={CHECKOUT_SESSION}`,
     cancel_url: `${process.env.PUBLIC_IP}/error`,
   });
-
-  return res.status(201).send(session);
+  res.status(201).send(session);
 });
 
 app.get('/customers', (req, res) => {
   const customerId = req.params.id;
-  const account = customers[customerId];
-  if (account) {
-    res.send(account);
+  if (customerId) {
+    res.send(customerId);
   } else {
     res.sendStatus(404);
   }
@@ -104,6 +111,7 @@ app.post("/webhooks", async (req, res) => {
   
   switch(eventType) {
     case 'checkout.session.completed':
+      console.error(data);
       const customerId = data.object.customer;
       const subscriptionId = data.object.subscription;
       
@@ -112,7 +120,7 @@ app.post("/webhooks", async (req, res) => {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const itemId = subscription.items.data[0].id;
       
-      const { hashedAPIKey, apiKey } = generateAPIKey();
+      const { hashedAPIKey } = generateAPIKey();
       
       const newCustomer = createCustomer({
         stripeCustomerId: customerId,
@@ -126,11 +134,11 @@ app.post("/webhooks", async (req, res) => {
       break;
       case 'invoice.paid':
         
-        break;
-        case 'invoice.payment_failed':
+      break;
+      case 'invoice.payment_failed':
           
-        default:
-          console.log(`Unhandled event type ${eventType}`);
+      default:
+        console.log(`Unhandled event type ${eventType}`);
   }
   
 });
@@ -141,4 +149,4 @@ app.use((req, res) => {
   });
 });
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);

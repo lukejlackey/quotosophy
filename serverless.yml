@@ -1,6 +1,6 @@
-org: process.env.ORG
-app: process.env.APP
-service: process.env.SERVICE
+org: lukejlackey
+app: quotosophy
+service: quotosophy
 frameworkVersion: '3'
 
 provider:
@@ -12,3 +12,6 @@ functions:
     handler: handler.handler
     events:
       - httpApi: '*'
+
+plugins:
+  - serverless-offline
