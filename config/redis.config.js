@@ -6,6 +6,18 @@ export const url = "redis://default:Sb6hZg5NNptiRktWg4mhxlTLvp4AYuJl@redis-11669
 export const connection = createClient({ url });
 await connection.connect();
 
-export const redisClient = await new Client().use(connection);
+const client = await new Client().use(connection);
 
-export default redisClient;
+export async function openConnection() {
+    if (!client.isOpen()) {
+        await client.open(url);
+    }
+}
+
+export async function createIndex(schema) {
+    await client.open();
+    const repo = client.fetchRepository(schema);
+    await repo.createIndex();
+}
+
+export default client;

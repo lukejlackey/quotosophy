@@ -3,10 +3,11 @@ config();
 import serverless from "serverless-http";
 import express, { json } from "express";
 import Stripe from 'stripe';
-import { default as generateAPIKey } from "./functions/apiKeys/generateAPIKey.js";
-import { default as hash } from "./functions/general/hash.js";
-import { createCustomer, findCustomerById } from "./controllers/customer.controller.js";
-import { createAPIKey, findAPIKey } from "./controllers/apiKey.controller.js";
+import generateAPIKey from "./functions/generateAPIKey.js";
+import keyToCustomer from './functions/keyToCustomer.js';
+import { createCustomer } from "./controllers/customer.controller.js";
+import { createAPIKey } from "./controllers/apiKey.controller.js";
+import { getAllQuotes, getSingleQuote } from "./controllers/quote.controller.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK);
 
@@ -18,22 +19,14 @@ app.use(
   })
 );
 
-app.get("/test", async (req, res) => {
-  const customerId = findAPIKey("fJeiBDTzGN2pRejaITaJj6WcEJs");
-  const customer = findCustomerById(customerId);
-  res.send({data: {customerId, customer}});
-});
-
 app.get("/", async (req, res) => {
-  let apiKey = req.headers['X-API-KEY'];
+  const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
-    res.sendStatus(400);
+    return res.sendStatus(400);
   };
-  const hashedAPIKey = hash(apiKey);
-  const customerId = findAPIKey(hashedAPIKey);
-  const customer = findCustomerById(customerId);
+  const customer = await keyToCustomer(apiKey);
   if (!customer || !customer.active) {
-    res.sendStatus(403);
+    return res.sendStatus(403);
   } else {
     const record = await stripe.subscriptionItems.createUsageRecord(
       customer.itemId,
@@ -43,9 +36,56 @@ app.get("/", async (req, res) => {
         action: 'increment',
       }
       );
-      //TODO: pull all quotes
-      const quotes = []
-      res.status(200).send({data: quotes, usage: record});
+    const quotes = await getRandomQuote();
+    return res.status(200).send({data: quotes, usage: record});
+    };
+});
+
+app.get("/quotes/random", async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const quote = await getSingleQuote();
+    return res.status(200).send({data: quote, usage: record});
+    };
+});
+
+app.get("/quotes/:id", async (req, res) => {
+  const quoteId = req.params['id'];
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const quote = await getSingleQuote(quoteId);
+    if(quote === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: quote, usage: record});
     };
 });
 
@@ -61,15 +101,15 @@ app.post("/checkout", async (req, res) => {
     success_url: `${process.env.PUBLIC_IP}/success?session_id={CHECKOUT_SESSION}`,
     cancel_url: `${process.env.PUBLIC_IP}/error`,
   });
-  res.status(201).send(session);
+  return res.status(201).send(session);
 });
 
 app.get('/customers', (req, res) => {
   const customerId = req.params.id;
   if (customerId) {
-    res.send(customerId);
+    return res.send(customerId);
   } else {
-    res.sendStatus(404);
+    return res.sendStatus(404);
   }
 });
 
@@ -120,7 +160,9 @@ app.post("/webhooks", async (req, res) => {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const itemId = subscription.items.data[0].id;
       
-      const { hashedAPIKey } = generateAPIKey();
+      const { hashedAPIKey, apiKey } = generateAPIKey();
+
+      console.log({apiKey});
       
       const newCustomer = createCustomer({
         stripeCustomerId: customerId,
@@ -129,7 +171,7 @@ app.post("/webhooks", async (req, res) => {
         itemId,
       });
 
-      const newAPIKeyRecord = createAPIKey(newCustomer, hashedAPIKey);
+      const newAPIKeyRecord = createAPIKey(customerId, hashedAPIKey);
       
       break;
       case 'invoice.paid':

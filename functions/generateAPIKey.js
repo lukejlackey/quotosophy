@@ -1,6 +1,6 @@
-import { findAPIKey } from "../../controllers/apiKey.controller.js";
 import { randomBytes } from "crypto";
-import {default as hash} from "../general/hash.js";
+import { findAPIKey } from "../controllers/apiKey.controller.js";
+import hash from "./hash.js";
 
 export default function generateAPIKey() {
     let apiKey = randomBytes(16).toString('hex');
@@ -9,5 +9,5 @@ export default function generateAPIKey() {
         return generateAPIKey();
     };
 
-    return { hashedAPIKey };
+    return { hashedAPIKey, apiKey };
 }

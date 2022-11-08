@@ -1,16 +1,10 @@
 import { customerSchema } from "../models/customer.model.js";
-import { default as redisClient } from "../config/redis.config.js";
+import client, { createIndex, openConnection } from "../config/redis.config.js";
 
-async function createIndex() {
-    const client = redisClient;
-    await redisClient.open()
-    const repo = client.fetchRepository(customerSchema);
-    await repo.createIndex();
-}
+createIndex(customerSchema);
 
 export async function createCustomer(data) {
-    const client = redisClient;
-    await redisClient.open()
+    await openConnection();
     const repo = client.fetchRepository(customerSchema);
     const newCustomer = repo.createEntity(data);
     const id = await repo.save(newCustomer);
@@ -18,9 +12,9 @@ export async function createCustomer(data) {
 };
 
 export async function findCustomerById(customerId) {
-    const client = redisClient;
-    await redisClient.open()
+    await openConnection();
     const repo = client.fetchRepository(customerSchema);
-    const customer = await repo.fetch(customerId);
+    const customer = await repo.search()
+        .where('stripeCustomerId').equals(customerId).return.first();
     return customer;
 };
