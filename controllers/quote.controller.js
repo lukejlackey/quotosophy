@@ -1,28 +1,40 @@
+import { Graph } from 'redis';
 import { connection } from "../config/redis.config.js";
 
-export async function getAllQuotes() {
-    const query = "MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) RETURN q.quoteId, q.quote , w.name , a.name";
-    const reply = await connection.graph.QUERY('quotes', query);
-    return reply.data;
+export async function getAllQuotes(page=1) {
+    const floor = (page - 1) * 10;
+    const graph = new Graph(connection, 'quotes');
+    const reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE q.quoteId > $floor RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry ORDER BY q.quoteId LIMIT $limit",
+        {
+            params: {
+                limit: 10,
+                floor
+            }
+        }
+    );
+    return reply.data.length > 0 ? reply.data : null;
 }
 
 export async function getSingleQuote(quoteId=null) {
-    let query = "MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) ";
+    const graph = new Graph(connection, 'quotes');
+    let reply;
     if (quoteId === null) {
-        query += "RETURN q.quoteId, q.quote , w.name , a.name ORDER BY rand() LIMIT 1";
+        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry ORDER BY rand() LIMIT $limit",
+            {
+                params: {
+                    limit: 1
+                }
+            }
+        );
     } else {
-        query += `WHERE q.quoteId = ${quoteId} RETURN q.quoteId, q.quote , w.name , a.name LIMIT 1`;
+        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE q.quoteId = $inputId RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry LIMIT $limit",
+            {
+                params: {
+                    limit: 1,
+                    inputId: quoteId,
+                }
+            }
+        );
     };
-    let quote = await connection.graph.QUERY('quotes', query);
-    if(quote.data.length > 0) {
-        quote = quote.data[0];
-        const reply = {
-            id: quote[0],
-            quote: quote[1],
-            text: quote[2],
-            author: quote[3]
-        };
-        return reply;
-    }
-    return null;
+    return reply.data.length > 0 ? reply.data[0].entry : null;
 }

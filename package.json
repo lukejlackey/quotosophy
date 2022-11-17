@@ -6,7 +6,7 @@
   "dependencies": {
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
-    "redis": "^4.4.0",
+    "redis": "^4.5.0",
     "redis-om": "^0.3.6",
     "serverless-http": "^2.7.0",
     "stripe": "^10.15.0"

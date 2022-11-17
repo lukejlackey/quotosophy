@@ -8,6 +8,7 @@ import keyToCustomer from './functions/keyToCustomer.js';
 import { createCustomer } from "./controllers/customer.controller.js";
 import { createAPIKey } from "./controllers/apiKey.controller.js";
 import { getAllQuotes, getSingleQuote } from "./controllers/quote.controller.js";
+import { getAllSources, getSingleSource } from "./controllers/source.controller.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK);
 
@@ -36,7 +37,33 @@ app.get("/", async (req, res) => {
         action: 'increment',
       }
       );
-    const quotes = await getRandomQuote();
+      const quotes = await getRandomQuote();
+      return res.status(200).send({data: quotes, usage: record});
+    };
+  });
+  
+app.get("/quotes/all", async (req, res) => {
+  const page = req.query['page'] ? parseInt(req.query['page']) : 1;
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const quotes = await getAllQuotes(page);
+    if(quotes === null) {
+      return res.sendStatus(404);
+    }
     return res.status(200).send({data: quotes, usage: record});
     };
 });
@@ -64,7 +91,7 @@ app.get("/quotes/random", async (req, res) => {
 });
 
 app.get("/quotes/:id", async (req, res) => {
-  const quoteId = req.params['id'];
+  const quoteId = parseInt(req.params['id']);
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
     return res.sendStatus(400);
@@ -89,6 +116,83 @@ app.get("/quotes/:id", async (req, res) => {
     };
 });
 
+app.get("/sources/all", async (req, res) => {
+  const page = req.query['page'] ? parseInt(req.query['page']) : 1;
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const sources = await getAllSources(page);
+    if(sources === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: sources, usage: record});
+    };
+});
+
+app.get("/sources/random", async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const source = await getSingleSource();
+    if(source === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: source, usage: record});
+    };
+});
+
+app.get("/sources/:id", async (req, res) => {
+  const sourceId = parseInt(req.params['id']);
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const source = await getSingleSource(sourceId);
+    if(source === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: source, usage: record});
+    };
+});
+
 app.post("/checkout", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -104,7 +208,7 @@ app.post("/checkout", async (req, res) => {
   return res.status(201).send(session);
 });
 
-app.get('/customers', (req, res) => {
+app.get('/customers/:id', (req, res) => {
   const customerId = req.params.id;
   if (customerId) {
     return res.send(customerId);
