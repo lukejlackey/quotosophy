@@ -12,7 +12,7 @@ export async function getAllQuotes(page=1) {
             }
         }
     );
-    return reply.data.length > 0 ? reply.data : null;
+    return reply.data.length > 0 ? {page, quotes: reply.data} : null;
 }
 
 export async function getSingleQuote(quoteId=null) {

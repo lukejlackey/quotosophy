@@ -18,3 +18,11 @@ export async function findCustomerById(customerId) {
         .where('stripeCustomerId').equals(customerId).return.first();
     return customer;
 };
+
+export async function findCustomerByEmail(email) {
+    await openConnection();
+    const repo = client.fetchRepository(customerSchema);
+    const customer = await repo.search()
+        .where('email').equals(email).return.first();
+    return customer;
+};

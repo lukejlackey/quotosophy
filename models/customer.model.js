@@ -8,6 +8,7 @@ export const customerSchema = new Schema(
         apiKey: {type: 'string'},
         active: {type: 'boolean'},
         itemId: {type: 'string'},
+        email: {type: 'string'},
     },
     {
         dataStructure: 'JSON',

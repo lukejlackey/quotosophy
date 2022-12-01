@@ -12,7 +12,7 @@ export async function getAllSources(page=1) {
             }
         }
     );
-    return reply.data.length > 0 ? reply.data : null;
+    return reply.data.length > 0 ? {page, sources: reply.data} : null;
 }
 
 export async function getSingleSource(sourceId=null) {

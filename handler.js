@@ -9,6 +9,8 @@ import { createCustomer } from "./controllers/customer.controller.js";
 import { createAPIKey } from "./controllers/apiKey.controller.js";
 import { getAllQuotes, getSingleQuote } from "./controllers/quote.controller.js";
 import { getAllSources, getSingleSource } from "./controllers/source.controller.js";
+import { getAllAuthors, getSingleAuthor } from "./controllers/author.controller.js";
+import { sendNewKey } from './models/courier.model.js';
 
 const stripe = new Stripe(process.env.STRIPE_SK);
 
@@ -42,7 +44,7 @@ app.get("/", async (req, res) => {
     };
   });
   
-app.get("/quotes/all", async (req, res) => {
+app.get("/quotes/list", async (req, res) => {
   const page = req.query['page'] ? parseInt(req.query['page']) : 1;
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
@@ -92,6 +94,9 @@ app.get("/quotes/random", async (req, res) => {
 
 app.get("/quotes/:id", async (req, res) => {
   const quoteId = parseInt(req.params['id']);
+  if(!quoteId) {
+    return res.sendStatus(404);
+  }
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
     return res.sendStatus(400);
@@ -116,7 +121,7 @@ app.get("/quotes/:id", async (req, res) => {
     };
 });
 
-app.get("/sources/all", async (req, res) => {
+app.get("/sources/list", async (req, res) => {
   const page = req.query['page'] ? parseInt(req.query['page']) : 1;
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
@@ -169,6 +174,9 @@ app.get("/sources/random", async (req, res) => {
 
 app.get("/sources/:id", async (req, res) => {
   const sourceId = parseInt(req.params['id']);
+  if(!sourceId) {
+    return res.sendStatus(404);
+  }
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
     return res.sendStatus(400);
@@ -190,6 +198,86 @@ app.get("/sources/:id", async (req, res) => {
       return res.sendStatus(404);
     }
     return res.status(200).send({data: source, usage: record});
+    };
+});
+
+app.get("/authors/list", async (req, res) => {
+  const page = req.query['page'] ? parseInt(req.query['page']) : 1;
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const authors = await getAllAuthors(page);
+    if(authors === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: authors, usage: record});
+    };
+});
+
+app.get("/authors/random", async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const author = await getSingleAuthor();
+    if(author === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: author, usage: record});
+    };
+});
+
+app.get("/authors/:id", async (req, res) => {
+  const authorId = parseInt(req.params['id']);
+  if(!authorId) {
+    return res.sendStatus(404);
+  }
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) {
+    return res.sendStatus(400);
+  };
+  const customer = await keyToCustomer(apiKey);
+  if (!customer || !customer.active) {
+    return res.sendStatus(403);
+  } else {
+    const record = await stripe.subscriptionItems.createUsageRecord(
+      customer.itemId,
+      {
+        quantity: 1,
+        timestamp: 'now',
+        action: 'increment',
+      }
+      );
+    const author = await getSingleAuthor(authorId);
+    if(author === null) {
+      return res.sendStatus(404);
+    }
+    return res.status(200).send({data: author, usage: record});
     };
 });
 
@@ -257,36 +345,41 @@ app.post("/webhooks", async (req, res) => {
     case 'checkout.session.completed':
       console.error(data);
       const customerId = data.object.customer;
+      const customerEmail = await stripe.customers.retrieve(customerId).email;
+      
+      //TODO: stop duplicate accounts
+
       const subscriptionId = data.object.subscription;
       
       console.log(`Customer ${customerId} subscribed to plan ${subscriptionId}!`);
       
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const itemId = subscription.items.data[0].id;
+
       
       const { hashedAPIKey, apiKey } = generateAPIKey();
-
-      console.log({apiKey});
       
       const newCustomer = createCustomer({
         stripeCustomerId: customerId,
         apiKey: hashedAPIKey,
         active: true,
         itemId,
+        email: customerEmail,
       });
 
       const newAPIKeyRecord = createAPIKey(customerId, hashedAPIKey);
+
+      const requestId = sendNewKey(customerEmail, apiKey);
       
       break;
       case 'invoice.paid':
-        
+        //TODO: send invoice email
       break;
       case 'invoice.payment_failed':
-          
+        //TODO: set customer 'active' to false and send failed invoice email
       default:
         console.log(`Unhandled event type ${eventType}`);
   }
-  
 });
 
 app.use((req, res) => {
