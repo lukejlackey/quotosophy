@@ -11,6 +11,13 @@ export async function createCustomer(data) {
     return id;
 };
 
+export async function updateCustomer(customer) {
+    await openConnection();
+    const repo = client.fetchRepository(customerSchema);
+    const id = await repo.save(customer);
+    return id;
+};
+
 export async function findCustomerById(customerId) {
     await openConnection();
     const repo = client.fetchRepository(customerSchema);
@@ -20,6 +27,7 @@ export async function findCustomerById(customerId) {
 };
 
 export async function findCustomerByEmail(email) {
+    createIndex(customerSchema);
     await openConnection();
     const repo = client.fetchRepository(customerSchema);
     const customer = await repo.search()

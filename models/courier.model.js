@@ -1,6 +1,6 @@
 import { CourierClient } from "@trycourier/courier";
-import { findCustomerByEmail } from "../controllers/customer.controller";
-import { createToken } from "../controllers/token.controller";
+import { findCustomerByEmail } from "../controllers/customer.controller.js";
+import { createToken } from "../controllers/token.controller.js";
 
 const courier = CourierClient({ authorizationToken: process.env.COURIER_AUTH });
 
@@ -18,12 +18,17 @@ async function sendEmail(address, template, data) {
 }
 
 export async function sendReset(address) {
-    const customerId = await findCustomerByEmail(address).stripeCustomerId;
-    const token = createToken(customerId);
-    const resetLink = `${process.env.FRONTEND_URL}/reset?token=${token}&cid${customerId}`;
+    const customer = await findCustomerByEmail(address);
+    let customerId = customer.stripeCustomerId;
+    const token = await createToken(customerId);
+    const resetLink = `${process.env.FRONTEND_URL}/reset?token=${token}&cid=${customerId.replace('_','-')}`;
     return await sendEmail(address, process.env.RESET_EMAIL, {resetLink});
 };
 
 export async function sendNewKey(address, apiKey) {
     return await sendEmail(address, process.env.NEW_KEY_EMAIL, {apiKey});
+};
+
+export async function sendNewKeyRecovered(address, apiKey) {
+    return await sendEmail(address, process.env.NEW_KEY_RECV_EMAIL, {apiKey});
 };

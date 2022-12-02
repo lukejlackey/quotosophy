@@ -15,6 +15,13 @@ export async function createAPIKey(customerId, apiKey) {
     return id;
 }
 
+export async function updateAPIKey(apiKey) {
+    await openConnection();
+    const repo = client.fetchRepository(apiKeySchema);
+    const id = await repo.save(apiKey);
+    return id;
+}
+
 export async function findAPIKey(apiKey) {
     await openConnection();
     const repo = client.fetchRepository(apiKeySchema);

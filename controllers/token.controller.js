@@ -10,7 +10,7 @@ export async function createToken(customerId) {
     await openConnection();
     const repo = client.fetchRepository(tokenSchema);
     const newToken = repo.createEntity({
-        customerId,
+        customerId: customerId,
         token: hash(token),
     });
     const id = await repo.save(newToken);
@@ -18,10 +18,16 @@ export async function createToken(customerId) {
     return token;
 };
 
-export async function findToken(token) {
+export async function findToken(unhashedToken) {
     await openConnection();
     const repo = client.fetchRepository(tokenSchema);
     const token = await repo.search()
-        .where('token').equals(hash(token)).return.first();
+        .where('token').equals(hash(unhashedToken)).return.first();
     return token;
+};
+
+export async function deleteToken(id) {
+    await openConnection();
+    const repo = client.fetchRepository(tokenSchema);
+    return await repo.remove(id);
 };
