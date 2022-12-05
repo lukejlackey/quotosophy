@@ -1,32 +1,51 @@
-import { apiKeySchema } from "../models/apiKey.model.js";
-import client, { createIndex, openConnection } from "../config/redis.config.js";
+import generateAPIKey from '../functions/generateAPIKey.js';
+import { findAPIKey, updateAPIKey } from '../models/apiKey.model.js';
+import { sendNewKeyRecovered, sendReset } from '../models/courier.model.js';
+import { findCustomerByEmail, findCustomerById, updateCustomer } from '../models/customer.model.js';
+import { deleteToken, findToken } from '../models/token.model.js';
 
-createIndex(apiKeySchema);
-
-export async function createAPIKey(customerId, apiKey) {
-    await openConnection();
-    const repo = client.fetchRepository(apiKeySchema);
-    const data = {
-        apiKey,
-        customerId,
+//GET
+export async function recover(req, res) {
+    try {
+        const email = req.headers['email'];
+        if(!findCustomerByEmail(email)) {
+            return res.sendStatus(404);
+        }
+        const requestId = await sendReset(email);
+        return res.status(200).send({requestId});
+    } catch (error) {
+        return res.status(500).send(error);
     }
-    const newAPIKey = repo.createEntity(data);
-    const id = await repo.save(newAPIKey);
-    return id;
 }
 
-export async function updateAPIKey(apiKey) {
-    await openConnection();
-    const repo = client.fetchRepository(apiKeySchema);
-    const id = await repo.save(apiKey);
-    return id;
+//PUT
+export async function reset(req, res) {
+    try {        
+        let { token, cid } = req.headers;
+        token = await findToken(token);
+        cid = cid.replace('-','_');
+        if(!token) {
+            return res.sendStatus(404);
+        }
+        if(token.customerId !== cid) {
+            return res.sendStatus(400);
+        }
+        let customer = await findCustomerById(cid);
+        if(!customer) {
+            return res.sendStatus(404);
+        }
+        let apiKeyMapping = await findAPIKey(customer.apiKey);
+        if(!apiKeyMapping) {
+            return res.sendStatus(404);
+        }
+        const {hashedAPIKey, apiKey} = generateAPIKey();
+        customer.apiKey = apiKeyMapping.apiKey = hashedAPIKey;
+        const customerId = await updateCustomer(customer);
+        const apiKeyId = await updateAPIKey(apiKeyMapping);
+        await deleteToken(token.entityId);
+        const requestId = await sendNewKeyRecovered(customer.email, apiKey);
+        return res.status(200).send({requestId});
+    } catch (error) {
+        return res.status(500).send(error);
+    }
 }
-
-export async function findAPIKey(apiKey) {
-    await openConnection();
-    const repo = client.fetchRepository(apiKeySchema);
-    const keyMapping = await repo.search()
-        .where('apiKey').equals(apiKey).return.first();
-    return keyMapping;
-}
-

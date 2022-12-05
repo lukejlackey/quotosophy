@@ -1,7 +1,7 @@
 import { Client } from "redis-om";
 import { createClient } from 'redis';
 
-export const url = "redis://default:Sb6hZg5NNptiRktWg4mhxlTLvp4AYuJl@redis-11669.c270.us-east-1-3.ec2.cloud.redislabs.com:11669";
+export const url = process.env.REDIS_URL;
 
 export const connection = createClient({ url });
 connection.on('error', (err) => console.log('Redis Client Error', err));

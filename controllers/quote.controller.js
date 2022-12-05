@@ -1,43 +1,95 @@
-import { Graph } from 'redis';
-import { connection } from "../config/redis.config.js";
+import keyToCustomer from "../functions/keyToCustomer.js";
+import { getAllQuotes, getSingleQuote } from "../models/quote.model.js";
+import { stripe } from "../models/stripe.model.js";
 
-export async function getAllQuotes(page=1) {
-    const floor = (page - 1) * 10;
-    const graph = new Graph(connection, 'quotes');
-    const reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE q.quoteId > $floor RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry ORDER BY q.quoteId LIMIT $limit",
-        {
-            params: {
-                limit: 10,
-                floor
+//GET
+export async function quotesList(req, res) {
+    try {        
+        const page = req.query['page'] ? parseInt(req.query['page']) : 1;
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+            return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+            customer.itemId,
+            {
+                quantity: 1,
+                timestamp: 'now',
+                action: 'increment',
             }
+            );
+            const quotes = await getAllQuotes(page);
+            if(quotes === null) {
+                return res.sendStatus(404);
+            }
+            return res.status(200).send({data: quotes, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};
+
+//GET
+export async function quotesRandom(req, res) {
+    try {        
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+            return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+            customer.itemId,
+            {
+                quantity: 1,
+                timestamp: 'now',
+                action: 'increment',
+            }
+            );
+            const quote = await getSingleQuote();
+            return res.status(200).send({data: quote, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};
+
+//GET
+export async function quotesId(req, res) {
+    try {        
+        const quoteId = parseInt(req.params['id']);
+        if(!quoteId) {
+            return res.sendStatus(404);
         }
-    );
-    return reply.data.length > 0 ? {page, quotes: reply.data} : null;
-}
-
-export async function getSingleQuote(quoteId=null) {
-    const graph = new Graph(connection, 'quotes');
-    let reply;
-    if (quoteId === null) {
-        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry ORDER BY rand() LIMIT $limit",
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+            return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+            customer.itemId,
             {
-                params: {
-                    limit: 1
-                }
+                quantity: 1,
+                timestamp: 'now',
+                action: 'increment',
             }
-        );
-    } else {
-        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE q.quoteId = $inputId RETURN {id: q.quoteId, quote: q.quote , source: w.name , author: a.name} AS entry LIMIT $limit",
-            {
-                params: {
-                    limit: 1,
-                    inputId: quoteId,
-                }
+            );
+            const quote = await getSingleQuote(quoteId);
+            if(quote === null) {
+                return res.sendStatus(404);
             }
-        );
-    };
-    return reply.data.length > 0 ? reply.data[0].entry : null;
-}
-export async function getRandomQuote() {
-    return await getSingleQuote();
-}
+            return res.status(200).send({data: quote, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};

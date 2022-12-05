@@ -1,13 +1,12 @@
 import Stripe from 'stripe';
-import { createAPIKey } from '../controllers/apiKey.controller.js';
-import { cancelCustomerById, createCustomer } from '../controllers/customer.controller.js';
+import { createAPIKey } from '../models/apiKey.model.js';
+import { cancelCustomerById, createCustomer } from '../models/customer.model.js';
 import generateAPIKey from "../functions/generateAPIKey.js";
 import { sendNewKey } from './courier.model.js';
 
-const stripe = new Stripe(process.env.STRIPE_SK);
+export const stripe = new Stripe(process.env.STRIPE_SK);
 
 export async function subscriptionCreated(data) {
-    console.log(data)
 
     const customerId = data.object.customer;
     const itemId = data.object.id;

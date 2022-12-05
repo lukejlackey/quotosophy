@@ -1,44 +1,98 @@
-import { Graph } from 'redis';
-import { connection } from "../config/redis.config.js";
+import keyToCustomer from "../functions/keyToCustomer.js";
+import { getAllSources, getSingleSource } from "../models/source.model.js";
+import { stripe } from "../models/stripe.model.js";
 
-export async function getAllSources(page=1) {
-    const floor = (page - 1) * 10;
-    const graph = new Graph(connection, 'quotes');
-    const reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE w.workId > $floor WITH w, a, COLLECT(q.quote) AS quotesList RETURN {id: w.workId, title: w.name , quotes: quotesList , author: a.name} AS entry ORDER BY w.workId LIMIT $limit",
-        {
-            params: {
-                limit: 10,
-                floor
+//GET
+export async function sourcesList(req, res) {
+    try {        
+        const page = req.query['page'] ? parseInt(req.query['page']) : 1;
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+            return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+                customer.itemId,
+                {
+                    quantity: 1,
+                    timestamp: 'now',
+                    action: 'increment',
+                }
+            );
+            const sources = await getAllSources(page);
+            if(sources === null) {
+                return res.sendStatus(404);
             }
+            return res.status(200).send({data: sources, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};
+
+//GET
+export async function sourcesRandom(req, res) {
+    try {        
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+                return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+                customer.itemId,
+                {
+                    quantity: 1,
+                    timestamp: 'now',
+                    action: 'increment',
+                }
+            );
+            const source = await getSingleSource();
+            if(source === null) {
+                return res.sendStatus(404);
+            }
+            return res.status(200).send({data: source, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};
+
+//GET
+export async function sourcesId(req, res) {
+    try {        
+        const sourceId = parseInt(req.params['id']);
+        if(!sourceId) {
+            return res.sendStatus(404);
         }
-    );
-    return reply.data.length > 0 ? {page, sources: reply.data} : null;
-}
-
-export async function getSingleSource(sourceId=null) {
-    const graph = new Graph(connection, 'quotes');
-    let reply;
-    if (sourceId === null) {
-        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WITH w, a, COLLECT(q.quote) AS quotesList RETURN {id: w.workId, title: w.name , quotes: quotesList , author: a.name} AS entry ORDER BY rand() LIMIT $limit",
-            {
-                params: {
-                    limit: 1
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.sendStatus(400);
+        };
+        const customer = await keyToCustomer(apiKey);
+        if (!customer || !customer.active) {
+            return res.sendStatus(403);
+        } else {
+            const record = await stripe.subscriptionItems.createUsageRecord(
+                customer.itemId,
+                {
+                    quantity: 1,
+                    timestamp: 'now',
+                    action: 'increment',
                 }
+            );
+            const source = await getSingleSource(sourceId);
+            if(source === null) {
+                return res.sendStatus(404);
             }
-        );
-    } else {
-        reply = await graph.roQuery("MATCH (a:Author)-[r:WROTE]->(w:Work)-[c:CONTAINS]->(q:Quote) WHERE w.workId = $inputId WITH w, a, COLLECT(q.quote) AS quotesList RETURN {id: w.workId, title: w.name , quotes: quotesList , author: a.name} AS entry LIMIT $limit",
-            {
-                params: {
-                    limit: 1,
-                    inputId: sourceId,
-                }
-            }
-        );
-    };
-    return reply.data.length > 0 ? reply.data[0].entry : null;
-}
-
-export async function getRandomSource() {
-    return await getSingleSource();
-}
+            return res.status(200).send({data: source, usage: record});
+        };
+    } catch (error) {
+        return res.status(500).send(error);
+    }
+};

@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { findAPIKey } from "../controllers/apiKey.controller.js";
+import { findAPIKey } from "../models/apiKey.model.js";
 import hash from "./hash.js";
 
 export default function generateAPIKey() {

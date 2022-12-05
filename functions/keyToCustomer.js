@@ -1,5 +1,5 @@
-import { findAPIKey } from "../controllers/apiKey.controller.js";
-import { findCustomerById } from "../controllers/customer.controller.js";
+import { findAPIKey } from "../models/apiKey.model.js";
+import { findCustomerById } from "../models/customer.model.js";
 import hash from "./hash.js";
 
 export default async function keyToCustomer(apiKey) {

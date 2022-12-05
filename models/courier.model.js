@@ -1,8 +1,10 @@
 import { CourierClient } from "@trycourier/courier";
-import { findCustomerByEmail } from "../controllers/customer.controller.js";
-import { createToken } from "../controllers/token.controller.js";
+import { findCustomerByEmail } from "../models/customer.model.js";
+import { createToken } from "../models/token.model.js";
 
 const courier = CourierClient({ authorizationToken: process.env.COURIER_AUTH });
+
+//IMPORTANT: TAKE AWS SES OUT OF SANDBOX MODE
 
 async function sendEmail(address, template, data) {
     const { requestId } = await courier.send({
