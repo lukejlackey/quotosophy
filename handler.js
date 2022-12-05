@@ -7,11 +7,23 @@ import generateAPIKey from "./functions/generateAPIKey.js";
 import keyToCustomer from './functions/keyToCustomer.js';
 import { createCustomer, findCustomerByEmail, findCustomerById, updateCustomer } from "./controllers/customer.controller.js";
 import { createAPIKey, findAPIKey, updateAPIKey } from "./controllers/apiKey.controller.js";
-import { getAllQuotes, getSingleQuote } from "./controllers/quote.controller.js";
-import { getAllSources, getSingleSource } from "./controllers/source.controller.js";
-import { getAllAuthors, getSingleAuthor } from "./controllers/author.controller.js";
+import { getAllQuotes, getSingleQuote, getRandomQuote } from "./controllers/quote.controller.js";
+import { getAllSources, getSingleSource, getRandomSource } from "./controllers/source.controller.js";
+import { getAllAuthors, getSingleAuthor, getRandomAuthor } from "./controllers/author.controller.js";
 import { sendNewKey, sendNewKeyRecovered, sendReset } from './models/courier.model.js';
 import { deleteToken, findToken } from './controllers/token.controller.js';
+import { subscriptionCancelled, subscriptionCreated } from './models/stripe.model.js';
+
+const categories = {
+  quotes: 0,
+  sources: 1,
+  authors: 2,
+};
+const values = {
+  list: [getAllQuotes,getAllSources,getAllAuthors],
+  random: [getRandomQuote,getRandomSource,getRandomAuthor],
+  single: [getSingleQuote,getSingleSource,getSingleAuthor],
+};
 
 const stripe = new Stripe(process.env.STRIPE_SK);
 
@@ -24,26 +36,38 @@ app.use(
 );
 
 app.get("/", async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (!apiKey) {
-    return res.sendStatus(400);
-  };
-  const customer = await keyToCustomer(apiKey);
-  if (!customer || !customer.active) {
-    return res.sendStatus(403);
-  } else {
-    const record = await stripe.subscriptionItems.createUsageRecord(
-      customer.itemId,
-      {
-        quantity: 1,
-        timestamp: 'now',
-        action: 'increment',
-      }
-      );
-      const quotes = await getRandomQuote();
-      return res.status(200).send({data: quotes, usage: record});
-    };
-  });
+  //TODO: write root function
+  return res.sendStatus(200);
+});
+
+// app.get("/:category/:value?/:id?", async (req, res) => {
+//   const apiKey = req.headers['x-api-key'];
+//   if (!apiKey) {
+//     return res.sendStatus(400);
+//   };
+//   const customer = await keyToCustomer(apiKey);
+//   if (!customer || !customer.active) {
+//     return res.sendStatus(403);
+//   };
+//   const category = req.params['category'];
+//   if(category && !(category in categories)) {
+//     return res.sendStatus(404);
+//   };
+//   const value = req.params['value'];
+//   if(value && !(value in values)) {
+//     return res.sendStatus(404);
+//   };
+//   const id = req.params['id'];
+//   const result = id ? await values[value][category](id) : await values[value][category]();
+//   const record = await stripe.subscriptionItems.createUsageRecord(
+//     customer.itemId,
+//     {
+//       quantity: 1,
+//       timestamp: 'now',
+//       action: 'increment',
+//     }
+//   );
+// });
   
 app.get("/quotes/list", async (req, res) => {
   const page = req.query['page'] ? parseInt(req.query['page']) : 1;
@@ -310,7 +334,6 @@ app.put("/reset", async (req, res) => {
   }
   let apiKeyMapping = await findAPIKey(customer.apiKey);
   if(!apiKeyMapping) {
-    console.log(3)
     return res.sendStatus(404);
   }
   const {hashedAPIKey, apiKey} = generateAPIKey();
@@ -374,53 +397,29 @@ app.post("/webhooks", async (req, res) => {
     
     data = event.data;
     eventType = event.type;
-    
   } else {
 
     data = req.body.data;
     eventType = req.body.type;
-    
   }
-  
   switch(eventType) {
-    case 'checkout.session.completed':
-      console.error(data);
-      const customerId = data.object.customer;
-      const customerEmail = await stripe.customers.retrieve(customerId).email;
-      
-      //TODO: stop duplicate accounts
-
-      const subscriptionId = data.object.subscription;
-      
-      console.log(`Customer ${customerId} subscribed to plan ${subscriptionId}!`);
-      
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const itemId = subscription.items.data[0].id;
-
-      
-      const { hashedAPIKey, apiKey } = generateAPIKey();
-      
-      const newCustomer = createCustomer({
-        stripeCustomerId: customerId,
-        apiKey: hashedAPIKey,
-        active: true,
-        itemId,
-        email: customerEmail,
-      });
-
-      const newAPIKeyRecord = createAPIKey(customerId, hashedAPIKey);
-
-      const requestId = sendNewKey(customerEmail, apiKey);
-      
+    case 'customer.subscription.created':
+      subscriptionCreated(data);
       break;
-      case 'invoice.paid':
-        //TODO: send invoice email
+    case 'customer.subscription.deleted':
+      subscriptionCancelled(data);
       break;
-      case 'invoice.payment_failed':
-        //TODO: set customer 'active' to false and send failed invoice email
-      default:
-        console.log(`Unhandled event type ${eventType}`);
+    case 'invoice.paid':
+      //TODO: send invoice email
+      break;
+    case 'invoice.payment_failed':
+      //TODO: set customer 'active' to false and send failed invoice email
+      break;
+    default:
+      console.log(`Unhandled event type ${eventType}`);
+      break;
   }
+  return;
 });
 
 app.use((req, res) => {

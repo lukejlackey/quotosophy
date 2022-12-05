@@ -38,3 +38,7 @@ export async function getSingleAuthor(authorId=null) {
     };
     return reply.data.length > 0 ? reply.data[0].entry : null;
 }
+
+export async function getRandomAuthor() {
+    return await getSingleAuthor();
+}

@@ -38,3 +38,7 @@ export async function getSingleSource(sourceId=null) {
     };
     return reply.data.length > 0 ? reply.data[0].entry : null;
 }
+
+export async function getRandomSource() {
+    return await getSingleSource();
+}

@@ -22,12 +22,21 @@ export async function findCustomerById(customerId) {
     await openConnection();
     const repo = client.fetchRepository(customerSchema);
     const customer = await repo.search()
-        .where('stripeCustomerId').equals(customerId).return.first();
+    .where('stripeCustomerId').equals(customerId).return.first();
     return customer;
 };
 
+export async function cancelCustomerById(customerId) {
+    await openConnection();
+    const repo = client.fetchRepository(customerSchema);
+    let customer = await repo.search()
+    .where('stripeCustomerId').equals(customerId).return.first();
+    customer['active'] = false;
+    const id = await repo.save(customer);
+    return id;
+};
+
 export async function findCustomerByEmail(email) {
-    createIndex(customerSchema);
     await openConnection();
     const repo = client.fetchRepository(customerSchema);
     const customer = await repo.search()

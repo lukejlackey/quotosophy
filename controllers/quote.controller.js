@@ -38,3 +38,6 @@ export async function getSingleQuote(quoteId=null) {
     };
     return reply.data.length > 0 ? reply.data[0].entry : null;
 }
+export async function getRandomQuote() {
+    return await getSingleQuote();
+}
