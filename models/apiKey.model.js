@@ -41,4 +41,3 @@ export async function findAPIKey(apiKey) {
         .where('apiKey').equals(apiKey).return.first();
     return keyMapping;
 }
-

@@ -4,8 +4,11 @@ import { sendNewKeyRecovered, sendReset } from '../models/courier.model.js';
 import { findCustomerByEmail, findCustomerById, updateCustomer } from '../models/customer.model.js';
 import { deleteToken, findToken } from '../models/token.model.js';
 
+
+//TODO: Add verification for endpoints
+
 //GET
-export async function recover(req, res) {
+export async function recover(req, res, next) {
     try {
         const email = req.headers['email'];
         if(!findCustomerByEmail(email)) {
@@ -19,7 +22,7 @@ export async function recover(req, res) {
 }
 
 //PUT
-export async function reset(req, res) {
+export async function reset(req, res, next) {
     try {        
         let { token, cid } = req.headers;
         token = await findToken(token);

@@ -1,4 +1,4 @@
-import app from '../app.js'
+import app from '../app/app.js'
 import { recover, reset } from "./apiKey.controller.js";
 import { webhooks } from "./stripe.controller.js";
 import { quotesId, quotesList, quotesRandom } from "./quote.controller.js";

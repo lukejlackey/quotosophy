@@ -9,7 +9,7 @@ export const stripe = new Stripe(process.env.STRIPE_SK);
 export async function subscriptionCreated(data) {
 
     const customerId = data.object.customer;
-    const itemId = data.object.id;
+    const itemId = data.object.items.data[0].id;
     let customerEmail = await stripe.customers.retrieve(customerId);
     customerEmail = customerEmail.email;
 
@@ -20,11 +20,11 @@ export async function subscriptionCreated(data) {
     const { hashedAPIKey, apiKey } = generateAPIKey();
 
     const newCustomer = await createCustomer({
-    stripeCustomerId: customerId,
-    apiKey: hashedAPIKey,
-    active: true,
-    itemId,
-    email: customerEmail,
+        stripeCustomerId: customerId,
+        apiKey: hashedAPIKey,
+        active: true,
+        itemId,
+        email: customerEmail,
     });
 
     console.log({newCustomer});

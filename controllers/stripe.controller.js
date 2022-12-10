@@ -1,7 +1,7 @@
 import { stripe, subscriptionCancelled, subscriptionCreated } from '../models/stripe.model.js'
 
 //POST
-export async function webhooks(req, res) {
+export async function webhooks(req, res, next) {
     try {
         let data;
         let eventType;
@@ -38,10 +38,10 @@ export async function webhooks(req, res) {
             subscriptionCancelled(data);
             break;
         case 'invoice.paid':
-            //TODO: send invoice email
+            //TODO: Restore past due accounts
             break;
         case 'invoice.payment_failed':
-            //TODO: set customer 'active' to false and send failed invoice email
+            subscriptionCancelled(data);
             break;
         default:
             console.log(`Unhandled event type ${eventType}`);
