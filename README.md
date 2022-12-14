@@ -1,0 +1,1 @@
+Please visit the dedicated documentation [Page](http://docs.quotosophy.com)  for more information.
