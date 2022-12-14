@@ -47,7 +47,7 @@ export async function webhooks(req, res, next) {
             console.log(`Unhandled event type ${eventType}`);
             break;
         }
-        return;
+        return res.send({received: true});
     } catch (error) {
         return res.status(500).send(error)
     }

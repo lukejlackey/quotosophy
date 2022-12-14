@@ -4,12 +4,13 @@ import { sendNewKeyRecovered, sendReset } from '../models/courier.model.js';
 import { findCustomerByEmail, findCustomerById, updateCustomer } from '../models/customer.model.js';
 import { deleteToken, findToken } from '../models/token.model.js';
 
-
-//TODO: Add verification for endpoints
-
 //GET
 export async function recover(req, res, next) {
     try {
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey !== process.env.CLIENT_API_KEY) {
+            return res.sendStatus(400);
+        }
         const email = req.headers['email'];
         if(!findCustomerByEmail(email)) {
             return res.sendStatus(404);
@@ -24,6 +25,10 @@ export async function recover(req, res, next) {
 //PUT
 export async function reset(req, res, next) {
     try {        
+        const key = req.headers['x-api-key'];
+        if (key !== process.env.CLIENT_API_KEY) {
+            return res.sendStatus(400);
+        }
         let { token, cid } = req.headers;
         token = await findToken(token);
         cid = cid.replace('-','_');
