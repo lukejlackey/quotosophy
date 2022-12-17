@@ -10,6 +10,7 @@
     "redis": "^4.5.0",
     "redis-om": "^0.3.6",
     "serverless-http": "^2.7.0",
+    "serverless-lift": "^1.21.0",
     "source-map-support": "^0.5.21",
     "stripe": "^10.15.0"
   },

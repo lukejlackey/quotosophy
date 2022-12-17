@@ -6,18 +6,35 @@ provider:
   runtime: nodejs16.x
   stage: dev
 
+constructs:
+  jobs:
+    type: queue
+    worker:
+      handler: sqs\handler.consumer
+
 functions:
   api:
     handler: handler.api
     events:
-      - http: # this is an API Gateway HTTP event trigger
+      - http:
           path: /
           method: ANY
           cors: true
-      - http: # all routes get proxied to the Express router
+      - http:
           path: /{proxy+}
           method: ANY
           cors: true
+  producer:
+    handler: handler.producer
+    events:
+      - httpApi:
+          method: post
+          path: /sqs/produce
+          cors:
+            origins:
+              - http://api.quotosophy.com
+    environment:
+      QUEUE_URL: ${construct:jobs.queueUrl}
 
 custom:
   customDomain:
@@ -37,4 +54,5 @@ plugins:
   - serverless-dotenv-plugin
   - serverless-domain-manager
   - serverless-webpack
+  - serverless-lift
 
