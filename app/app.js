@@ -12,7 +12,7 @@ app.use(
 
 
 app.get("/", async (req, res) => {
-    //TODO: write root function
+    //TODO: write info function
     return res.sendStatus(200);
 });
 

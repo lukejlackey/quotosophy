@@ -2,7 +2,7 @@ import { SQS } from "aws-sdk";
 
 const sqs = new SQS();
 
-const producer = async (event) => {
+export const producer = async (event) => {
     let statusCode = 200;
     let message;
 
@@ -44,7 +44,7 @@ const producer = async (event) => {
     };
 };
 
-const consumer = async (event) => {
+export const consumer = async (event) => {
     for (const record of event.Records) {
         const messageAttributes = record.messageAttributes;
         console.log("Message Attributes: ", messageAttributes.AttributeName.stringValue);
@@ -59,9 +59,4 @@ const consumer = async (event) => {
         );
         console.log("Usage: ", usage);
     }
-};
-
-module.exports = {
-    producer,
-    consumer,
 };

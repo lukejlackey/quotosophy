@@ -25,14 +25,14 @@ functions:
           method: ANY
           cors: true
   producer:
-    handler: handler.producer
+    handler: sqs\handler.producer
     events:
-      - httpApi:
-          method: post
+      - http:
           path: /sqs/produce
-          cors:
-            origins:
-              - http://api.quotosophy.com
+          method: post
+          # cors:
+          #   origins:
+          #     - http://api.quotosophy.com
     environment:
       QUEUE_URL: ${construct:jobs.queueUrl}
 
