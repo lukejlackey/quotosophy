@@ -1,4 +1,5 @@
 import { SQS } from "aws-sdk";
+import { stripe } from "../models/stripe.model.js"
 
 const sqs = new SQS();
 
