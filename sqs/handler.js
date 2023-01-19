@@ -2,11 +2,11 @@ import { SQS } from "aws-sdk";
 
 const sqs = new SQS();
 
-export const producer = async (event) => {
+export const produceMessage = async (itemId) => {
     let statusCode = 200;
     let message;
-
-    if (!event.body) {
+    console.log(itemId)
+    if (!itemId) {
         return {
             statusCode: 400,
             body: JSON.stringify({
@@ -19,7 +19,7 @@ export const producer = async (event) => {
         await sqs
             .sendMessage({
                 QueueUrl: process.env.QUEUE_URL,
-                MessageBody: event.body,
+                MessageBody: itemId,
                 MessageAttributes: {
                     AttributeName: {
                         StringValue: "Attribute Value",
@@ -28,7 +28,6 @@ export const producer = async (event) => {
                 },
             })
             .promise();
-
         message = "Message accepted!";
     } catch (error) {
         console.log(error);

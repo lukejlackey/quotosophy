@@ -3,14 +3,14 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs18.x
   stage: dev
 
 constructs:
   jobs:
     type: queue
     worker:
-      handler: sqs\handler.consumer
+      handler: sqs/handler.consumer
 
 functions:
   api:
@@ -24,15 +24,6 @@ functions:
           path: /{proxy+}
           method: ANY
           cors: true
-  producer:
-    handler: sqs\handler.producer
-    events:
-      - http:
-          path: /sqs/produce
-          method: post
-          # cors:
-          #   origins:
-          #     - http://api.quotosophy.com
     environment:
       QUEUE_URL: ${construct:jobs.queueUrl}
 
